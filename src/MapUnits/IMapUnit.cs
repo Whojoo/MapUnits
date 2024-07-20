@@ -1,10 +1,10 @@
 namespace MapUnits;
 
-public interface IMapUnit<TSourceA, SourceB>
+public interface IMapUnit<TSourceA, TSourceB>
 {
-    SourceB MapTo(TSourceA sourceA, IMapper mapper);
+    TSourceA CreateSourceAFromSourceB(TSourceB sourceB, IMapper mapper);
+    TSourceB CreateSourceBFromSourceA(TSourceA sourceA, IMapper mapper);
 
-    SourceB MapTo(TSourceA sourceA, SourceB sourceB, IMapper mapper);
-
-    TSourceA MapFrom<TSourceB>(TSourceB sourceB, IMapper mapper);
+    TSourceA MapSourceAFromSourceB(TSourceB sourceB, TSourceA existingSourceA, IMapper mapper);
+    TSourceB MapSourceBFromSourceA(TSourceA sourceA, TSourceB existingSourceB, IMapper mapper);
 }
