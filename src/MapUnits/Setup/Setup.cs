@@ -1,5 +1,6 @@
 using System.Reflection;
 using MapUnits.Core;
+using MapUnits.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Throw;
 
@@ -12,14 +13,17 @@ public static class MapUnitsSetupExtensions
 
     public static IServiceCollection AddMapUnits(this IServiceCollection services, List<Assembly?> assemblies)
     {
+        var wrapperLookupService = new WrapperLookupService();
+        var mapper = new Mapper(wrapperLookupService);
+
         // Add mapper to DI
-        services.AddSingleton<IMapper, Mapper>();
+        services.AddSingleton<IMapper>(mapper);
 
         // Find all MapUnits (TODO: Deep search assembly?)
         var mapUnitTypes = GetMapUnitTypes(assemblies);
 
         // Add the MapUnits to their wrappers and DI
-        CreateWrappersAndAddToServiceCollection(mapUnitTypes, services);
+        CreateWrappersAndAddToServiceCollection(mapUnitTypes, wrapperLookupService);
 
         return services;
     }
@@ -48,15 +52,15 @@ public static class MapUnitsSetupExtensions
         return mapUnitTypes;
     }
 
-    private static void CreateWrappersAndAddToServiceCollection(List<Type> mapUnitTypes, IServiceCollection services)
+    private static void CreateWrappersAndAddToServiceCollection(List<Type> mapUnitTypes, WrapperLookupService wrapperLookupService)
     {
         foreach (var mapUnitType in mapUnitTypes)
         {
-            CreateWrapperAndAddToServiceCollection(mapUnitType, services);
+            CreateWrapperAndAddToServiceCollection(mapUnitType, wrapperLookupService);
         }
     }
 
-    private static void CreateWrapperAndAddToServiceCollection(Type mapUnitType, IServiceCollection services)
+    private static void CreateWrapperAndAddToServiceCollection(Type mapUnitType, WrapperLookupService wrapperLookupService)
     {
         var genericArguments = mapUnitType.GetGenericArguments();
         var genericArgumentsReversed = genericArguments.Reverse().ToArray();
@@ -72,18 +76,20 @@ public static class MapUnitsSetupExtensions
         // Create the class types for the wrappers (typeof().MakeGeneric)
         var wrapperType = typeof(MapUnitWrapper<,>).MakeGenericType(genericArguments);
         var biDirectionalWrapperType = typeof(BiDirectionalMapUnitWrapper<,>).MakeGenericType(genericArgumentsReversed);
-        var interfaceWrapperType = typeof(MapUnitWrapper<,>).MakeGenericType(genericArguments);
-        var interfaceBiDirectionalWrapperType = typeof(BiDirectionalMapUnitWrapper<,>).MakeGenericType(genericArgumentsReversed);
 
         // Instantiate the wrappers
         var wrapper = Activator.CreateInstance(wrapperType, [mapUnit]);
-        var biDirectionalWrapper = Activator.CreateInstance(biDirectionalWrapperType, [mapUnit]);
+        var reversedWrapper = Activator.CreateInstance(biDirectionalWrapperType, [mapUnit]);
 
         wrapper.ThrowIfNull();
-        biDirectionalWrapper.ThrowIfNull();
+        reversedWrapper.ThrowIfNull();
 
-        // Add the wrappers to the IServiceCollection
-        services.AddSingleton(interfaceWrapperType, wrapper);
-        services.AddSingleton(interfaceBiDirectionalWrapperType, biDirectionalWrapper);
+        // Add the wrappers to lookup service
+        wrapperLookupService.AddWrappersFor(
+            sourceAType: genericArguments[0],
+            sourceBType: genericArguments[1],
+            wrapper: (IMapUnitWrapper)wrapper,
+            reversedWrapper: (IMapUnitWrapper)reversedWrapper
+        );
     }
 }
