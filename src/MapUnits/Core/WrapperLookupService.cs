@@ -5,7 +5,7 @@ namespace MapUnits.Core;
 
 internal sealed class WrapperLookupService
 {
-    private readonly Dictionary<Tuple<Type, Type>, IMapUnitWrapper> _wrapperDict = new();
+    private readonly Dictionary<Tuple<Type, Type>, IMapUnitWrapper> _wrapperDict = [];
 
     public void AddWrappersFor(Type sourceAType, Type sourceBType, IMapUnitWrapper wrapper, IMapUnitWrapper reversedWrapper)
     {
