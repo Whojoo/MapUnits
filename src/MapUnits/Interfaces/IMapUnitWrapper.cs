@@ -1,6 +1,10 @@
 namespace MapUnits.Interfaces;
 
-internal interface IMapUnitWrapper<TSourceA, TSourceB>
+internal interface IMapUnitWrapper
+{
+}
+
+internal interface IMapUnitWrapper<TSourceA, TSourceB> : IMapUnitWrapper
 {
     TSourceA Map(TSourceB source, IMapper mapper);
 
